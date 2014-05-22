@@ -48,6 +48,7 @@
             android:layout_height="50dip"
             android:layout_gravity="center_horizontal"
             android:background="@drawable/style_button"
+            android:onClick="btnChooseAPhoto_onClick"
             android:text="Choose a photo" />
     </LinearLayout>
 
