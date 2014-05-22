@@ -4,16 +4,26 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
 import android.view.Window;
 import android.view.View.OnClickListener;
 import android.widget.Button;
+import android.widget.ImageView;
 
 public class FaceDetectAndroidActivity extends Activity {
 
 	private static final int TAKE_PICTURE_CODE = 100;
 	public static final int GALLERY_REQUEST_CODE = 101;
+	private String fileName;
+	private Bitmap cameraBitmap = null, finalBitmap = null;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -91,7 +101,82 @@ public class FaceDetectAndroidActivity extends Activity {
 		CustomizeDialog customizeDialog = new CustomizeDialog(this);
 		customizeDialog.show();
 	}
-
+	
+	
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) 
+    {				
+		super.onActivityResult(requestCode, resultCode, data);					
+		
+		if(resultCode == Activity.RESULT_OK)
+		{
+			if(requestCode == TAKE_PICTURE_CODE)
+			{
+				processCameraImage(data);
+			}
+			else 
+				if(requestCode == GALLERY_REQUEST_CODE)  
+		        {
+					processGalleryImage(data);
+		        } 
+		}
+	}
+	
+	private void processCameraImage(Intent intent)
+    {
+    	setContentView(R.layout.detectlayout);
+    	ImageView imageView = (ImageView)findViewById(R.id.image_view);
+    	Uri selectedImageUri = intent.getData();
+    	fileName = getPath(selectedImageUri);      
+    	cameraBitmap = (Bitmap)intent.getExtras().get("data");
+		
+		if(cameraBitmap.getWidth() > cameraBitmap.getHeight())
+		{
+			Matrix matrix = new Matrix();
+			matrix.postRotate(90);
+			cameraBitmap = Bitmap.createBitmap(cameraBitmap, 0, 0, cameraBitmap.getWidth(), cameraBitmap.getHeight(), matrix, true);
+		}
+		
+    	imageView.setImageBitmap(cameraBitmap);
+    }
+	
+	private void processGalleryImage(Intent intent)
+    {
+    	setContentView(R.layout.detectlayout);
+    	ImageView imageView = (ImageView)findViewById(R.id.image_view);
+    	Uri selectedImageUri = intent.getData();
+    	String selectedImagePath = getPath(selectedImageUri);       
+		fileName = selectedImagePath;
+    	BitmapFactory.Options options = new BitmapFactory.Options();
+    	options.inSampleSize = 4;  
+    	options.inPreferredConfig = Config.RGB_565;
+    	cameraBitmap = BitmapFactory.decodeFile( selectedImagePath, options );				
+		
+		if(cameraBitmap.getWidth() > cameraBitmap.getHeight())
+		{
+			Matrix matrix = new Matrix();
+			matrix.postRotate(90);
+			cameraBitmap = Bitmap.createBitmap(cameraBitmap, 0, 0, cameraBitmap.getWidth(), cameraBitmap.getHeight(), matrix, true);
+		}
+		
+    	imageView.setImageBitmap(cameraBitmap);
+    }
+	
+    public String getPath(Uri contentUri)
+	{
+            String res = null;
+            String[] proj = { MediaStore.Images.Media.DATA };
+            Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
+            
+            if(cursor.moveToFirst()){;
+               int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+               res = cursor.getString(column_index);
+            }
+            cursor.close();
+            
+            return res;
+    }
+	
 	// /////////////////////////////////////////////////////////
 	public class CustomizeDialog extends Dialog implements OnClickListener {
 		Button cancelButton;
