@@ -3,7 +3,7 @@
 #include<winsock2.h>
 #include<conio.h>
  
-#pragma comment(lib,"ws2_32.lib") //Winsock Library
+#pragma comment(lib,"ws2_32.lib")
  
 int main(int argc , char *argv[])
 {
@@ -11,6 +11,9 @@ int main(int argc , char *argv[])
     SOCKET socket1, socket2, new_socket1, new_socket2;
     struct sockaddr_in server, server2, client, client2;
     int c, c2;
+	char buffer[1000];
+	int buffer_len = 1000;
+	FILE *f = fopen("out.jpg", "wb");
 
 
     printf("\nInitializing Winsock...");
@@ -39,7 +42,7 @@ int main(int argc , char *argv[])
  
     printf("Sockets 1 and 2 created.\n");
 
-	  //Prepare the sockaddr_in structure
+	//Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons( 8888 );
@@ -94,7 +97,23 @@ int main(int argc , char *argv[])
     }     
     printf("\nConnection accepted 2");
 
-  
+	int totalBytesRead = 0;
+	int bytesRead;
+	
+	while((bytesRead = recv(new_socket1, buffer, buffer_len, 0)) > 0)
+	{
+		fwrite(buffer, 1, bytesRead, f);
+	}
+	
+	fclose(f);
+	printf("\nReceived finished!\n");
+	
+	
+	char* my_message = "Face detected!";
+	
+	send(new_socket2, my_message, strlen(my_message), 0);
+	printf("\nSend finished: %s", my_message);
+
     closesocket(socket1);
     closesocket(socket2);
 

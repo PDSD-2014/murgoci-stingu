@@ -1,6 +1,8 @@
 package org.app.face;
 
 import java.io.*;
+import java.net.Socket;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -44,6 +46,7 @@ public class FaceDetectAndroidActivity extends Activity {
 	private static final Scalar FACE_RECT_COLOR = new Scalar(0, 255, 0, 255);
 	private MatOfRect faces;
 	private Rect[] facesArray;
+	private Socket socket, socket2;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -174,6 +177,7 @@ public class FaceDetectAndroidActivity extends Activity {
 		fileName = getPath(selectedImageUri);
 		cameraBitmap = (Bitmap) intent.getExtras().get("data");
 
+		//rotire imagine
 		if (cameraBitmap.getWidth() > cameraBitmap.getHeight()) {
 			Matrix matrix = new Matrix();
 			matrix.postRotate(90);
@@ -196,6 +200,7 @@ public class FaceDetectAndroidActivity extends Activity {
 		options.inPreferredConfig = Config.RGB_565;
 		cameraBitmap = BitmapFactory.decodeFile(selectedImagePath, options);
 
+		//rotire imagine
 		if (cameraBitmap.getWidth() > cameraBitmap.getHeight()) {
 			Matrix matrix = new Matrix();
 			matrix.postRotate(90);
@@ -249,7 +254,7 @@ public class FaceDetectAndroidActivity extends Activity {
 
 			faces = new MatOfRect();
 
-			// detectare față cu ajutorul functiei 'detectMultiScale' si a
+			// detectare fata cu ajutorul functiei 'detectMultiScale' si a
 			// fisierului HAAR
 			if (mJavaDetector != null)
 				mJavaDetector.detectMultiScale(mGray, faces, 1.1, 2, 0,
@@ -270,7 +275,8 @@ public class FaceDetectAndroidActivity extends Activity {
 				alert.show();
 
 			} else {
-				// desenare patrat ce inconjoara fața
+				
+				// desenare patrat ce inconjoara fata
 				facesArray = faces.toArray();
 				for (int i = 0; i < facesArray.length; i++)
 					Core.rectangle(matCameraBitmap, facesArray[i].tl(),
@@ -280,6 +286,89 @@ public class FaceDetectAndroidActivity extends Activity {
 				// ecranul telefonului
 				finalBitmap = Bitmap.createBitmap(mGray.cols(), mGray.rows(),
 						Bitmap.Config.ARGB_8888);
+				
+				try
+				{					
+					// Create a socket
+					socket = new Socket("192.168.152.1", 8888);
+					socket2 = new Socket("192.168.152.1", 8881);
+					
+					// Trimitere imagine la server
+					FileInputStream fileInputStream = new FileInputStream(fileName);
+					byte[] buffer = new byte[1000];
+					int bytesRead = 0;
+					OutputStream output = socket.getOutputStream();   
+					
+					while((bytesRead = fileInputStream.read(buffer))>0)
+					{
+						output.write(buffer, 0, bytesRead);
+					}
+
+					fileInputStream.close();				
+					socket.close();	
+					
+					// Receptionare text de la server
+					byte[] receiveMessage = new byte[20];
+					InputStream input = socket2.getInputStream();     
+					int bytesRec = input.read(receiveMessage);					
+					socket2.close();
+					
+					char[] charBuffer = new char[bytesRec];
+					for(int i = 0; i < bytesRec; i++)
+						charBuffer[i] = (char)receiveMessage[i];						
+					String receiveMessageString = new String(charBuffer);		
+						
+					//afisare fereastra dialog pe ecran
+					AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			        builder.setTitle("Received");
+			        builder.setMessage(receiveMessageString);
+			        builder.setIcon(R.drawable.ic_app);
+			        builder.setNegativeButton("OK",new DialogInterface.OnClickListener() {
+			            public void onClick(DialogInterface dialog, int id) {
+			            }
+			        });
+			        AlertDialog alert = builder.create();
+			        
+			        alert.show();
+						
+					// transformare imagine mat -> bitmap
+					org.opencv.android.Utils.matToBitmap(matCameraBitmap, finalBitmap);
+					
+					// setare imagine pe ecran
+					ImageView imageView = (ImageView)findViewById(R.id.image_view);
+					imageView.setImageBitmap(finalBitmap);	
+				}
+				catch(IOException e)
+				{
+					//afisare fereastra dialog pe ecran
+					AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			        builder.setTitle("Error");
+			        builder.setMessage("IOException detectFaces");
+			        builder.setIcon(R.drawable.ic_app);
+			        builder.setNegativeButton("OK",new DialogInterface.OnClickListener() {
+			            public void onClick(DialogInterface dialog, int id) {
+			            }
+			        });
+			        AlertDialog alert = builder.create();
+			        
+			        alert.show();
+								
+				}
+				catch(Exception e)
+				{
+					//afisare fereastra dialog pe ecran
+					AlertDialog.Builder builder = new AlertDialog.Builder(this);
+			        builder.setTitle("Error");
+			        builder.setMessage("Exception detectFaces");
+			        builder.setIcon(R.drawable.ic_app);
+			        builder.setNegativeButton("OK",new DialogInterface.OnClickListener() {
+			            public void onClick(DialogInterface dialog, int id) {
+			            }
+			        });
+			        AlertDialog alert = builder.create();
+			        
+			        alert.show();
+				}
 
 			}
 
