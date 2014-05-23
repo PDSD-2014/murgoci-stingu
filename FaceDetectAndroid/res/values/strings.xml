@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <string name="app_info">Detects the face in a photo\n\n Press \'Choose a photo\' in order to take a photo or pick one from Gallery and detect a face.</string>
     <string name="app_name">Detect Face</string>
     <string name="detect_face">Detect Face</string>
-      <string name="choose_photo">Choose photo</string>
+    <string name="choose_photo">Choose photo</string>
+
 </resources>
